@@ -26,7 +26,7 @@ public class LCarBehaviour : NetworkBehaviour {
     private float _brakeSuspensionCompressionValue;
 
     private LCarController _lCarController;
-
+    
     private float _steeringBodyRollValue;
 
     private Vector3 CarBodyLocalEulerAngles {
@@ -36,13 +36,14 @@ public class LCarBehaviour : NetworkBehaviour {
     private float CurrentSteeringAmount => _lCarController.CurrentSteeringAmount;
     private float NormalizedMagnitude => _lCarController.NormalizedMagnitude;
     private bool ItIsApplicationFocused => _lCarController.ItIsApplicationFocused;
+    private bool IsGameStarted => _lCarController.IsGameStarted;
 
     private void Start() {
         _lCarController = GetComponent<LCarController>();
     }
 
     private void Update() {
-        if(!IsOwner || !ItIsApplicationFocused) return;
+        if(!IsOwner || !ItIsApplicationFocused || !IsGameStarted) return;
 
         CarBodyRoll();
         RotateWheels();
