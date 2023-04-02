@@ -1,4 +1,5 @@
-﻿using Unity.Netcode;
+﻿using RK.Retales.Utility;
+using Unity.Netcode;
 using UnityEngine;
 
 public class GameManager : NetworkBehaviour {
@@ -9,7 +10,7 @@ public class GameManager : NetworkBehaviour {
     [SerializeField] private int laps = 3;
 
     [Header("Debug")]
-    [SerializeField] private Logger logger;
+    [SerializeField] private LogHandler logger;
 
     private NetworkVariable<int> _numberOfPlayers = new();
     private NetworkVariable<int> _occupiedSpawnPoints = new();
@@ -18,10 +19,6 @@ public class GameManager : NetworkBehaviour {
         Debug();
         Application.targetFrameRate = 300;
     }
-
-    private void Start() { }
-
-    private void Update() { }
 
     public override void OnNetworkSpawn() {
         AddPlayer();
@@ -64,7 +61,10 @@ public class GameManager : NetworkBehaviour {
     }
 
     private int ReturnCurrentSpawnPoint() {
-        return ++_occupiedSpawnPoints.Value;
+        if(checkpoints.Length < _occupiedSpawnPoints.Value) return ++_occupiedSpawnPoints.Value;
+        
+        logger.Log($"SpawnPoint overflow! max: {spawnPoints.Length}", this);
+        return _occupiedSpawnPoints.Value;
     }
 
     private void Debug() {

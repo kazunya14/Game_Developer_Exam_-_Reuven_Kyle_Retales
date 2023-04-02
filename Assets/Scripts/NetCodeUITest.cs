@@ -1,20 +1,16 @@
+using RK.Retales.Utility;
 using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class NetCodeUITest : MonoBehaviour
-{
-    [Header("Network Settings")]
-    [SerializeField] private Button hostButton;
-    [SerializeField] private Button joinButton;
-    [SerializeField] private Logger logger;
+public class NetCodeUITest : MonoBehaviour {
+    [SerializeField] private LogHandler logger;
 
     public void OnHostGame() {
         logger.Log("Hosting...", this);
         NetworkManager.Singleton.StartHost();
         Hide();
     }
-    
+
     public void OnJoinGame() {
         logger.Log("Joining...", this);
         NetworkManager.Singleton.StartClient();

@@ -16047,7 +16047,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1841830184}
+      - m_Target: {fileID: 1841830187}
         m_TargetAssemblyTypeName: NetCodeUITest, Assembly-CSharp
         m_MethodName: OnJoinGame
         m_Mode: 1
@@ -33165,7 +33165,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1841830184}
+      - m_Target: {fileID: 1841830187}
         m_TargetAssemblyTypeName: NetCodeUITest, Assembly-CSharp
         m_MethodName: OnHostGame
         m_Mode: 1
@@ -42552,7 +42552,7 @@ GameObject:
   - component: {fileID: 1633949433}
   - component: {fileID: 1633949434}
   m_Layer: 0
-  m_Name: NetworkButtons
+  m_Name: Debugger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -47490,9 +47490,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1841830183}
-  - component: {fileID: 1841830184}
   - component: {fileID: 1841830186}
   - component: {fileID: 1841830185}
+  - component: {fileID: 1841830187}
   m_Layer: 5
   m_Name: Netcode UI
   m_TagString: Untagged
@@ -47522,20 +47522,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1841830184
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1841830182}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a4fb70da44688a849a222563be0cf793, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hostButton: {fileID: 1290516285}
-  joinButton: {fileID: 653483265}
 --- !u!114 &1841830185
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -47574,6 +47560,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1841830182}
   m_CullTransparentMesh: 1
+--- !u!114 &1841830187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1841830182}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4fb70da44688a849a222563be0cf793, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logger: {fileID: 1633949434}
 --- !u!1001 &1849641838
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52275,6 +52274,7 @@ MonoBehaviour:
   - {fileID: 1699784649}
   maxPlayers: 2
   laps: 3
+  logger: {fileID: 1633949434}
 --- !u!1001 &2033305611
 PrefabInstance:
   m_ObjectHideFlags: 0

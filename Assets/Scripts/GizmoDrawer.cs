@@ -9,7 +9,7 @@ namespace RK.Retales.Utility {
         [SerializeField] private Vector3 offset;
         [SerializeField] private Color color = Color.red;
 
-        private void OnDrawGizmos() {
+        protected virtual void OnDrawGizmos() {
             Gizmos.color = color;
             Gizmos.matrix = Matrix4x4.TRS(transform.position + offset, transform.rotation,
                 transform.localScale);
