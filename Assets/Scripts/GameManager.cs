@@ -1,11 +1,13 @@
-﻿using System;
-using QFSW.QC.Actions;
-using RK.Retales.Utility;
+﻿using RK.Retales.Utility;
+using TMPro;
 using Unity.Netcode;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : NetworkBehaviour {
+    [Header("UI References")]
+    [SerializeField] private TextMeshProUGUI playerCountText;
+    [SerializeField] private GameObject lobbyScreen;
+
     [Header("Game Settings")]
     [SerializeField] private Transform[] spawnPoints;
     [SerializeField] private Transform[] checkpoints;
@@ -15,43 +17,44 @@ public class GameManager : NetworkBehaviour {
     [Header("Debug")]
     [SerializeField] private LogHandler logger;
     
-    private int _currentNumberOfPlayers;
-    
     private int SpawnPointsLength => spawnPoints.Length;
-
-
-    private NetworkVariable<int> _numberOfPlayers = new NetworkVariable<int>(
-        0, NetworkVariableReadPermission.Everyone);
 
     private void Awake() {
         Debug();
         Application.targetFrameRate = 300;
     }
 
-    public override void OnNetworkSpawn() {
-        base.OnNetworkSpawn();
-        
-        GameEvents.InvokeOnGameManagerReady();
-        StartGameWhenAllPlayersAreReady();
-    }
-    private void StartGame() {
-        GameEvents.InvokeOnGameStart();
-        logger.Log("Game started!", this);
+    public override void OnDestroy() {
+        GameEvents.OnPlayerJoined -= OnPlayerJoined;
+        GameEvents.OnGameStart -= OnGameStart;
     }
 
-    private void StartGameWhenAllPlayersAreReady() {
-        if(_currentNumberOfPlayers >= maxPlayers) StartGame();
+    public override void OnNetworkSpawn() {
+        GameEvents.OnPlayerJoined += OnPlayerJoined;
+        GameEvents.OnGameStart += OnGameStart;
     }
-    
-    public Transform GetSpawnPoint(int playerNumber) {
-        if(_currentNumberOfPlayers >= maxPlayers) return spawnPoints[0];
-        
+
+    private void OnGameStart() {
+        lobbyScreen.SetActive(false);
+    }
+
+    private void OnPlayerJoined(int current) {
+        var prefix = IsHost
+            ? "Start the game by pressing \nEnter or Start"
+            : "Waiting for the Host to start the game...";
+
+        playerCountText.SetText($"{prefix}\nPlayers: {current}/{maxPlayers}");
+    }
+
+    public Transform SpawnPointHandler(int playerNumber) {
+        if(playerNumber >= maxPlayers) return spawnPoints[0];
+
         var spawnPoint = spawnPoints[playerNumber];
-        _currentNumberOfPlayers++;
         return spawnPoint;
     }
 
     private void Debug() {
+        if(!IsServer) return;
         if(SpawnPointsLength < maxPlayers || SpawnPointsLength == 0)
             logger.Log("Not enough spawn points!", this);
 

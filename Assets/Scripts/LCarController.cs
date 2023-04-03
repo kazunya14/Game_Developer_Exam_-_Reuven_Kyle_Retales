@@ -1,4 +1,3 @@
-using System;
 using Cinemachine;
 using QFSW.QC;
 using RK.Retales.Utility;
@@ -8,9 +7,14 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody))]
 public class LCarController : NetworkBehaviour {
+    // ReSharper disable once ArrangeObjectCreationWhenTypeEvident
+    private NetworkVariable<bool> _isGameStarted = new NetworkVariable<bool>(false, EveryoneCanRead);
+
+    // ReSharper disable once ArrangeObjectCreationWhenTypeEvident
+    private NetworkVariable<int> _numberOfPlayers = new NetworkVariable<int>(0, EveryoneCanRead);
+
     private void Awake() {
         _rigidbody = GetComponent<Rigidbody>();
-        _collider = GetComponent<Collider>();
         _virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
         _quantumConsole = FindObjectOfType<QuantumConsole>();
     }
@@ -20,19 +24,16 @@ public class LCarController : NetworkBehaviour {
 
         ItIsApplicationFocused = true;
         InitializeCamera();
-        SubscribeToEvents();
     }
 
     private void Update() {
-        Debug.Log($"number of players: {_numberOfPlayers.Value}");
-        
         if(!IsServer) return;
 
         _numberOfPlayers.Value = NetworkManager.Singleton.ConnectedClients.Count;
     }
 
     private void FixedUpdate() {
-        if(!IsOwner || !ItIsApplicationFocused || !IsGameStarted) return;
+        if(!IsOwner || !ItIsApplicationFocused || !ItIsGameStarted) return;
 
         HandleAcceleration(CurrentGasPedalAmount);
         HandleSteering(CurrentSteeringAmount);
@@ -43,27 +44,32 @@ public class LCarController : NetworkBehaviour {
         _virtualCamera.LookAt = transform;
     }
 
-    private void InitializePlayer() {
-        _gameManager = FindObjectOfType<GameManager>();
-        
-        if(!IsOwner) return;
-        
+    private void InitializePlayer(int playerNumber) {
+        if(!IsOwner || playerNumber <= 0 || _playerNumberAssigned) return;
+
+        _playerNumber = playerNumber;
+        _playerNumberAssigned = true;
+
         name = $"Player {_playerNumber}";
-        var spawnPoint = _gameManager.GetSpawnPoint(_playerNumber);
-        transform.position = spawnPoint.position;
-        transform.rotation = spawnPoint.rotation;
     }
 
-    public override void OnNetworkSpawn() {
-        base.OnNetworkSpawn();
-        _playerNumber = NetworkManager.Singleton.ConnectedClients.Count + 3;
-        GameEvents.OnGameManagerReady += OnGameManagerReady;
+    private void MoveToStartingPosition() {
+        if(name != $"Player {_playerNumber}") return;
+        _gameManager??= FindObjectOfType<GameManager>();
+        
+        _spawnPoint = SpawnPointHandler(_playerNumber);
+        
+        gameObject.SetActive(false); // To avoid any weird physics
+        transform.position = _spawnPoint.transform.position;
+        transform.rotation = _spawnPoint.transform.rotation;
+        gameObject.SetActive(true);
+    }
+
+    private Transform SpawnPointHandler(int playerNumber) {
+        return _gameManager.SpawnPointHandler(playerNumber - 1);
     }
 
     private enum GearDirection { Forward, Backward }
-    
-    [SerializeField] private NetworkVariable<int> _numberOfPlayers = new NetworkVariable<int>(
-        0, NetworkVariableReadPermission.Everyone);
 
 #region SERIALIZED_FIELDS
 
@@ -87,12 +93,13 @@ public class LCarController : NetworkBehaviour {
 
     private GearDirection _gearDirection;
     private int _playerNumber;
-
+    private bool _playerNumberAssigned;
+    
+    private Transform _spawnPoint;
     private Rigidbody _rigidbody;
-    private Collider _collider;
     private CinemachineVirtualCamera _virtualCamera;
-    private QuantumConsole _quantumConsole;
     private GameManager _gameManager;
+    private QuantumConsole _quantumConsole;
 
 #endregion
 
@@ -102,7 +109,7 @@ public class LCarController : NetworkBehaviour {
     public float CurrentGasPedalAmount { get; private set; }
     public float CurrentSteeringAmount { get; private set; }
     public bool ItIsApplicationFocused { get; private set; }
-    public bool IsGameStarted { get; private set; }
+    public bool ItIsGameStarted { get; private set; }
 
     private Vector3 Velocity {
         get => _rigidbody.velocity;
@@ -114,10 +121,10 @@ public class LCarController : NetworkBehaviour {
     private float Magnitude => _rigidbody.velocity.magnitude;
     private Vector3 ForwardDirection => transform.forward;
     private Vector3 BackwardDirection => -transform.forward;
-    
+    private static NetworkVariableReadPermission EveryoneCanRead => NetworkVariableReadPermission.Everyone;
+
     private bool ItIsReversible =>
         Magnitude <= breakToReverseThreshold || _gearDirection == GearDirection.Backward;
-    
 
 #endregion
 
@@ -138,7 +145,7 @@ public class LCarController : NetworkBehaviour {
 
             case < 0 when ItIsReversible:
                 _gearDirection = GearDirection.Backward;
-                Accelerate(Math.Abs(currentGasPedalAmount));
+                Accelerate(Mathf.Abs(currentGasPedalAmount));
                 break;
 
             case < 0 when !ItIsReversible:
@@ -179,20 +186,39 @@ public class LCarController : NetworkBehaviour {
         if(_gearDirection == GearDirection.Backward)
             // Because direction is inverted when moving backwards
             steeringAmount = -steeringAmount;
+        
+        
 
-        transform.Rotate(steeringAmount * NormalizedMagnitude * Vector3.up);
+        transform.Rotate(steeringAmount * NormalizedMagnitude * transform.up);
     }
 
 #endregion
 
 #region EVENTS
 
-    private void SubscribeToEvents() {
-        GameEvents.OnGameStart += OnGameStart;
+    public override void OnNetworkSpawn() {
+        _isGameStarted.OnValueChanged += OnGameStartTriggered;
+        _numberOfPlayers.OnValueChanged += OnNumberOfPlayersChanged;
+    }
+
+    private void OnNumberOfPlayersChanged(int oldValue, int newValue) {
+        InitializePlayer(newValue);
+        MoveToStartingPosition();
+        GameEvents.InvokeOnPlayerJoined(newValue);
+        
+        LogHandler.StaticLog($"{name}: Player count has changed from {oldValue} to {newValue}", Color.blue, this);
+    }
+
+    private void OnGameStartTriggered(bool oldValue, bool newValue) {
+        ItIsGameStarted = true;
+        GameEvents.InvokeOnGameStart();
+
+        LogHandler.StaticLog($"{name}: Game started: {newValue}", Color.blue, this);
     }
 
     private void UnsubscribeFromEvents() {
-        GameEvents.OnGameStart -= OnGameStart;
+        _numberOfPlayers.OnValueChanged -= OnNumberOfPlayersChanged;
+        _isGameStarted.OnValueChanged -= OnGameStartTriggered;
     }
 
     public override void OnDestroy() {
@@ -200,29 +226,21 @@ public class LCarController : NetworkBehaviour {
 
         UnsubscribeFromEvents();
     }
-
     private void OnApplicationFocus(bool hasFocus) {
         ItIsApplicationFocused = hasFocus;
     }
 
-    private void OnGameStart() {
-        IsGameStarted = true;
-    }
-
-    private void OnGameManagerReady() {
-        InitializePlayer();
-    }
-    
     public void OnToggleConsole() {
         _quantumConsole.Toggle();
     }
 
-    public void ForceStartGame() {
-        if(!IsOwner || !IsHost || IsGameStarted) return;
+    public void StartGame() {
+        if(!IsServer) return;
 
-        LogHandler.StaticLog($"Host has force started the game", Color.red, this);
-        GameEvents.InvokeOnGameStart();
+        _isGameStarted.Value = true;
+        
+        LogHandler.StaticLog($"{name}: Host has started the game", Color.green, this);
     }
-    
+
 #endregion
 }

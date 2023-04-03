@@ -9,6 +9,8 @@ public class LCarBehaviour : NetworkBehaviour {
     [SerializeField] private float maxWheelSteeringAngle = 30f;
     [Tooltip("The offset of the wheel rotation, in case the wheel model is not rotated correctly")]
     [SerializeField] private Vector3 wheelModelRotationOffset = new(0f, -90f, 0f);
+    [Tooltip("The speed at which the wheels will rotate")]
+    [SerializeField] private float wheelRotationSpeed = 10f;
 
     [Header("Car Body Settings")]
     [Range(0f, 90f)]
@@ -26,8 +28,9 @@ public class LCarBehaviour : NetworkBehaviour {
     private float _brakeSuspensionCompressionValue;
 
     private LCarController _lCarController;
-    
+
     private float _steeringBodyRollValue;
+    private const float _wheelFullRotationAngle = 360f;
 
     private Vector3 CarBodyLocalEulerAngles {
         set => carBodyModel.transform.localEulerAngles = value;
@@ -36,7 +39,7 @@ public class LCarBehaviour : NetworkBehaviour {
     private float CurrentSteeringAmount => _lCarController.CurrentSteeringAmount;
     private float NormalizedMagnitude => _lCarController.NormalizedMagnitude;
     private bool ItIsApplicationFocused => _lCarController.ItIsApplicationFocused;
-    private bool IsGameStarted => _lCarController.IsGameStarted;
+    private bool IsGameStarted => _lCarController.ItIsGameStarted;
 
     private void Start() {
         _lCarController = GetComponent<LCarController>();
@@ -57,7 +60,13 @@ public class LCarBehaviour : NetworkBehaviour {
             frontWheel.transform.localEulerAngles = steeringAngle + wheelModelRotationOffset;
     }
 
-    private void RotateWheels() { }
+    private void RotateWheels() {
+        var wheelRotation = NormalizedMagnitude * _wheelFullRotationAngle * Time.deltaTime * 
+                            wheelRotationSpeed * Vector3.back;
+
+        foreach(var wheelModel in wheelModels)
+            wheelModel.transform.Rotate(wheelRotation);
+    }
 
     private void CarBodyRoll() {
         _steeringBodyRollValue = Mathf.Lerp(_steeringBodyRollValue, CurrentSteeringAmount, Time.deltaTime);
