@@ -1,13 +1,70 @@
 using System;
+using Cinemachine;
+using QFSW.QC;
+using RK.Retales.Utility;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Cinemachine;
 
 [RequireComponent(typeof(Rigidbody))]
 public class LCarController : NetworkBehaviour {
+    private void Awake() {
+        _rigidbody = GetComponent<Rigidbody>();
+        _collider = GetComponent<Collider>();
+        _virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
+        _quantumConsole = FindObjectOfType<QuantumConsole>();
+    }
+
+    private void Start() {
+        if(!IsOwner) return;
+
+        ItIsApplicationFocused = true;
+        InitializeCamera();
+        SubscribeToEvents();
+    }
+
+    private void Update() {
+        Debug.Log($"number of players: {_numberOfPlayers.Value}");
+        
+        if(!IsServer) return;
+
+        _numberOfPlayers.Value = NetworkManager.Singleton.ConnectedClients.Count;
+    }
+
+    private void FixedUpdate() {
+        if(!IsOwner || !ItIsApplicationFocused || !IsGameStarted) return;
+
+        HandleAcceleration(CurrentGasPedalAmount);
+        HandleSteering(CurrentSteeringAmount);
+    }
+
+    private void InitializeCamera() {
+        _virtualCamera.Follow = transform;
+        _virtualCamera.LookAt = transform;
+    }
+
+    private void InitializePlayer() {
+        _gameManager = FindObjectOfType<GameManager>();
+        
+        if(!IsOwner) return;
+        
+        name = $"Player {_playerNumber}";
+        var spawnPoint = _gameManager.GetSpawnPoint(_playerNumber);
+        transform.position = spawnPoint.position;
+        transform.rotation = spawnPoint.rotation;
+    }
+
+    public override void OnNetworkSpawn() {
+        base.OnNetworkSpawn();
+        _playerNumber = NetworkManager.Singleton.ConnectedClients.Count + 3;
+        GameEvents.OnGameManagerReady += OnGameManagerReady;
+    }
+
     private enum GearDirection { Forward, Backward }
     
+    [SerializeField] private NetworkVariable<int> _numberOfPlayers = new NetworkVariable<int>(
+        0, NetworkVariableReadPermission.Everyone);
+
 #region SERIALIZED_FIELDS
 
     [Header("Engine")]
@@ -29,68 +86,40 @@ public class LCarController : NetworkBehaviour {
 #region PRIVATE_FIELDS
 
     private GearDirection _gearDirection;
+    private int _playerNumber;
 
     private Rigidbody _rigidbody;
     private Collider _collider;
     private CinemachineVirtualCamera _virtualCamera;
+    private QuantumConsole _quantumConsole;
+    private GameManager _gameManager;
 
 #endregion
 
-#region PUBLIC_PROPERTIES
+#region PROPERTIES
 
+    // Read-write properties
     public float CurrentGasPedalAmount { get; private set; }
     public float CurrentSteeringAmount { get; private set; }
     public bool ItIsApplicationFocused { get; private set; }
     public bool IsGameStarted { get; private set; }
-
-    public float NormalizedMagnitude => Mathf.InverseLerp(0f, maxVelocity, Mathf.Abs(Magnitude));
-
-#endregion
-
-#region PRIVATE_PROPERTIES
-
-    private float Magnitude => _rigidbody.velocity.magnitude;
-    private Vector3 ForwardDirection => transform.forward;
-    private Vector3 BackwardDirection => -transform.forward;
-    private bool ItIsOwner => IsOwner;
 
     private Vector3 Velocity {
         get => _rigidbody.velocity;
         set => _rigidbody.velocity = value;
     }
 
+    // Read-only properties
+    public float NormalizedMagnitude => Mathf.InverseLerp(0f, maxVelocity, Mathf.Abs(Magnitude));
+    private float Magnitude => _rigidbody.velocity.magnitude;
+    private Vector3 ForwardDirection => transform.forward;
+    private Vector3 BackwardDirection => -transform.forward;
+    
+    private bool ItIsReversible =>
+        Magnitude <= breakToReverseThreshold || _gearDirection == GearDirection.Backward;
+    
+
 #endregion
-
-    private void Awake() {
-        _rigidbody = GetComponent<Rigidbody>();
-        _collider = GetComponent<Collider>();
-        _virtualCamera = FindObjectOfType<CinemachineVirtualCamera>();
-    }
-
-    private void Start() {
-        if(!IsOwner) return;
-
-        ItIsApplicationFocused = true;
-        InitializeCamera();
-        SubscribeToEvents();
-    }
-    
-    private void SubscribeToEvents() {
-        GameEvents.OnGameStart += OnGameStart;
-        GameEvents.OnPlayerSpawn += OnPlayerSpawn;
-    }
-    
-    private void UnsubscribeFromEvents() {
-        GameEvents.OnGameStart -= OnGameStart;
-        GameEvents.OnPlayerSpawn -= OnPlayerSpawn;
-    }
-
-    private void FixedUpdate() {
-        if(!ItIsOwner || !ItIsApplicationFocused || !IsGameStarted) return;
-
-        HandleAcceleration(CurrentGasPedalAmount);
-        HandleSteering(CurrentSteeringAmount);
-    }
 
 #region LOGIC
 
@@ -107,12 +136,12 @@ public class LCarController : NetworkBehaviour {
                 _gearDirection = GearDirection.Forward;
                 break;
 
-            case < 0 when ItIsReversible():
+            case < 0 when ItIsReversible:
                 _gearDirection = GearDirection.Backward;
                 Accelerate(Math.Abs(currentGasPedalAmount));
                 break;
 
-            case < 0 when !ItIsReversible():
+            case < 0 when !ItIsReversible:
                 Brake();
                 break;
         }
@@ -156,20 +185,21 @@ public class LCarController : NetworkBehaviour {
 
 #endregion
 
-#region METHODS_AND_HELPERS
-
-    private void InitializeCamera() {
-        _virtualCamera.Follow = transform;
-        _virtualCamera.LookAt = transform;
-    }
-    
-    private bool ItIsReversible() {
-        return Magnitude <= breakToReverseThreshold || _gearDirection == GearDirection.Backward;
-    }
-
-#endregion
-
 #region EVENTS
+
+    private void SubscribeToEvents() {
+        GameEvents.OnGameStart += OnGameStart;
+    }
+
+    private void UnsubscribeFromEvents() {
+        GameEvents.OnGameStart -= OnGameStart;
+    }
+
+    public override void OnDestroy() {
+        base.OnDestroy();
+
+        UnsubscribeFromEvents();
+    }
 
     private void OnApplicationFocus(bool hasFocus) {
         ItIsApplicationFocused = hasFocus;
@@ -179,18 +209,20 @@ public class LCarController : NetworkBehaviour {
         IsGameStarted = true;
     }
 
-    private void OnPlayerSpawn(Transform spawnPoint, ulong clientID) {
-        if(clientID != OwnerClientId) return;
-        
-        transform.position = spawnPoint.position;
-        transform.rotation = spawnPoint.rotation;
+    private void OnGameManagerReady() {
+        InitializePlayer();
+    }
+    
+    public void OnToggleConsole() {
+        _quantumConsole.Toggle();
     }
 
-    public override void OnDestroy() {
-        base.OnDestroy();
+    public void ForceStartGame() {
+        if(!IsOwner || !IsHost || IsGameStarted) return;
 
-        UnsubscribeFromEvents();
+        LogHandler.StaticLog($"Host has force started the game", Color.red, this);
+        GameEvents.InvokeOnGameStart();
     }
-
+    
 #endregion
 }

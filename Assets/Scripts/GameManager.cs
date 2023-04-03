@@ -1,5 +1,8 @@
-﻿using RK.Retales.Utility;
+﻿using System;
+using QFSW.QC.Actions;
+using RK.Retales.Utility;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : NetworkBehaviour {
@@ -11,9 +14,14 @@ public class GameManager : NetworkBehaviour {
 
     [Header("Debug")]
     [SerializeField] private LogHandler logger;
+    
+    private int _currentNumberOfPlayers;
+    
+    private int SpawnPointsLength => spawnPoints.Length;
 
-    private NetworkVariable<int> _numberOfPlayers = new();
-    private NetworkVariable<int> _occupiedSpawnPoints = new();
+
+    private NetworkVariable<int> _numberOfPlayers = new NetworkVariable<int>(
+        0, NetworkVariableReadPermission.Everyone);
 
     private void Awake() {
         Debug();
@@ -21,55 +29,32 @@ public class GameManager : NetworkBehaviour {
     }
 
     public override void OnNetworkSpawn() {
-        AddPlayer();
-        MovePlayerToSpawnPoint();
+        base.OnNetworkSpawn();
+        
+        GameEvents.InvokeOnGameManagerReady();
         StartGameWhenAllPlayersAreReady();
     }
-
-    public override void OnNetworkDespawn() {
-        RemovePlayer();
-    }
-
     private void StartGame() {
         GameEvents.InvokeOnGameStart();
         logger.Log("Game started!", this);
     }
 
     private void StartGameWhenAllPlayersAreReady() {
-        if(!IsHost) return;
-
-        if(_numberOfPlayers.Value >= maxPlayers) StartGame();
+        if(_currentNumberOfPlayers >= maxPlayers) StartGame();
     }
-
-    private void AddPlayer() {
-        if(!IsHost) return;
-
-        _numberOfPlayers.Value++;
-        logger.Log($"A player has joined! | Number of players: {_numberOfPlayers.Value}", this);
-    }
-
-    private void RemovePlayer() {
-        if(!IsHost) return;
-
-        _numberOfPlayers.Value--;
-        logger.Log($"A player has left! | Number of players: {_numberOfPlayers.Value}", this);
-    }
-
-    private void MovePlayerToSpawnPoint() {
-        var spawnPoint = spawnPoints[ReturnCurrentSpawnPoint()];
-        GameEvents.InvokeOnPlayerSpawn(spawnPoint, OwnerClientId);
-    }
-
-    private int ReturnCurrentSpawnPoint() {
-        if(checkpoints.Length < _occupiedSpawnPoints.Value) return ++_occupiedSpawnPoints.Value;
+    
+    public Transform GetSpawnPoint(int playerNumber) {
+        if(_currentNumberOfPlayers >= maxPlayers) return spawnPoints[0];
         
-        logger.Log($"SpawnPoint overflow! max: {spawnPoints.Length}", this);
-        return _occupiedSpawnPoints.Value;
+        var spawnPoint = spawnPoints[playerNumber];
+        _currentNumberOfPlayers++;
+        return spawnPoint;
     }
 
     private void Debug() {
-        if(spawnPoints.Length < maxPlayers || spawnPoints.Length == 0) logger.Log("Not enough spawn points!", this);
+        if(SpawnPointsLength < maxPlayers || SpawnPointsLength == 0)
+            logger.Log("Not enough spawn points!", this);
 
-        if(checkpoints.Length == 0) logger.Log("No checkpoints!", this);
+        if(SpawnPointsLength == 0) logger.Log("No checkpoints!", this);
     }
 }

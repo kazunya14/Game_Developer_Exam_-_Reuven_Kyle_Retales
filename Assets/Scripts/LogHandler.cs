@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
+using ColorUtility = UnityEngine.ColorUtility;
 
 namespace RK.Retales.Utility {
     [AddComponentMenu("_RKRetales/Utility/Logger")]
@@ -18,6 +20,12 @@ namespace RK.Retales.Utility {
             if(!showLogs) return;
 
             Debug.Log($"<color=#{_hexColor}>{prefix}: {message}</color>", sender);
+        }
+        
+        public static void StaticLog(object message, Color color, Object sender) {
+            var hexColor = ColorUtility.ToHtmlStringRGB(color);
+            
+            Debug.Log($"<color=#{hexColor}>: {message}</color>", sender);
         }
     }
 }

@@ -24,7 +24,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     ""name"": ""PlayerControls"",
     ""maps"": [
         {
-            ""name"": ""Vehicle"",
+            ""name"": ""Player"",
             ""id"": ""efcd55ed-83d1-4520-9f83-7870033844fd"",
             ""actions"": [
                 {
@@ -44,6 +44,24 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Start Game"",
+                    ""type"": ""Button"",
+                    ""id"": ""00ef6f2d-20c8-4b41-8604-7e19be16200d"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""ToggleConsole"",
+                    ""type"": ""Button"",
+                    ""id"": ""b1555ede-297f-4915-92e4-cec43335059c"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -319,6 +337,72 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Camera"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""50707572-83fe-48cb-aacb-d976fdc92658"",
+                    ""path"": ""<Keyboard>/enter"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Start Game"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e23ef673-3941-4205-bff1-6d435ccb786c"",
+                    ""path"": ""<Gamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Start Game"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7d6a6008-b326-4134-899e-70b3f7b76389"",
+                    ""path"": ""<DualShockGamepad>/start"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Start Game"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""5d1ab1ac-b6d8-484c-8499-d14b20841ae5"",
+                    ""path"": ""<DualShockGamepad>/select"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleConsole"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""172ea0ad-39da-473c-8f0f-7498ff07bcff"",
+                    ""path"": ""<Gamepad>/select"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleConsole"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""d1f8140a-ba12-4d90-9063-c76de6d58b58"",
+                    ""path"": ""<Keyboard>/1"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ToggleConsole"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -942,10 +1026,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     ],
     ""controlSchemes"": []
 }");
-        // Vehicle
-        m_Vehicle = asset.FindActionMap("Vehicle", throwIfNotFound: true);
-        m_Vehicle_Movement = m_Vehicle.FindAction("Movement", throwIfNotFound: true);
-        m_Vehicle_Camera = m_Vehicle.FindAction("Camera", throwIfNotFound: true);
+        // Player
+        m_Player = asset.FindActionMap("Player", throwIfNotFound: true);
+        m_Player_Movement = m_Player.FindAction("Movement", throwIfNotFound: true);
+        m_Player_Camera = m_Player.FindAction("Camera", throwIfNotFound: true);
+        m_Player_StartGame = m_Player.FindAction("Start Game", throwIfNotFound: true);
+        m_Player_ToggleConsole = m_Player.FindAction("ToggleConsole", throwIfNotFound: true);
         // UI
         m_UI = asset.FindActionMap("UI", throwIfNotFound: true);
         m_UI_Navigate = m_UI.FindAction("Navigate", throwIfNotFound: true);
@@ -1016,35 +1102,45 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         return asset.FindBinding(bindingMask, out action);
     }
 
-    // Vehicle
-    private readonly InputActionMap m_Vehicle;
-    private List<IVehicleActions> m_VehicleActionsCallbackInterfaces = new List<IVehicleActions>();
-    private readonly InputAction m_Vehicle_Movement;
-    private readonly InputAction m_Vehicle_Camera;
-    public struct VehicleActions
+    // Player
+    private readonly InputActionMap m_Player;
+    private List<IPlayerActions> m_PlayerActionsCallbackInterfaces = new List<IPlayerActions>();
+    private readonly InputAction m_Player_Movement;
+    private readonly InputAction m_Player_Camera;
+    private readonly InputAction m_Player_StartGame;
+    private readonly InputAction m_Player_ToggleConsole;
+    public struct PlayerActions
     {
         private @PlayerControls m_Wrapper;
-        public VehicleActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
-        public InputAction @Movement => m_Wrapper.m_Vehicle_Movement;
-        public InputAction @Camera => m_Wrapper.m_Vehicle_Camera;
-        public InputActionMap Get() { return m_Wrapper.m_Vehicle; }
+        public PlayerActions(@PlayerControls wrapper) { m_Wrapper = wrapper; }
+        public InputAction @Movement => m_Wrapper.m_Player_Movement;
+        public InputAction @Camera => m_Wrapper.m_Player_Camera;
+        public InputAction @StartGame => m_Wrapper.m_Player_StartGame;
+        public InputAction @ToggleConsole => m_Wrapper.m_Player_ToggleConsole;
+        public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
         public bool enabled => Get().enabled;
-        public static implicit operator InputActionMap(VehicleActions set) { return set.Get(); }
-        public void AddCallbacks(IVehicleActions instance)
+        public static implicit operator InputActionMap(PlayerActions set) { return set.Get(); }
+        public void AddCallbacks(IPlayerActions instance)
         {
-            if (instance == null || m_Wrapper.m_VehicleActionsCallbackInterfaces.Contains(instance)) return;
-            m_Wrapper.m_VehicleActionsCallbackInterfaces.Add(instance);
+            if (instance == null || m_Wrapper.m_PlayerActionsCallbackInterfaces.Contains(instance)) return;
+            m_Wrapper.m_PlayerActionsCallbackInterfaces.Add(instance);
             @Movement.started += instance.OnMovement;
             @Movement.performed += instance.OnMovement;
             @Movement.canceled += instance.OnMovement;
             @Camera.started += instance.OnCamera;
             @Camera.performed += instance.OnCamera;
             @Camera.canceled += instance.OnCamera;
+            @StartGame.started += instance.OnStartGame;
+            @StartGame.performed += instance.OnStartGame;
+            @StartGame.canceled += instance.OnStartGame;
+            @ToggleConsole.started += instance.OnToggleConsole;
+            @ToggleConsole.performed += instance.OnToggleConsole;
+            @ToggleConsole.canceled += instance.OnToggleConsole;
         }
 
-        private void UnregisterCallbacks(IVehicleActions instance)
+        private void UnregisterCallbacks(IPlayerActions instance)
         {
             @Movement.started -= instance.OnMovement;
             @Movement.performed -= instance.OnMovement;
@@ -1052,23 +1148,29 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Camera.started -= instance.OnCamera;
             @Camera.performed -= instance.OnCamera;
             @Camera.canceled -= instance.OnCamera;
+            @StartGame.started -= instance.OnStartGame;
+            @StartGame.performed -= instance.OnStartGame;
+            @StartGame.canceled -= instance.OnStartGame;
+            @ToggleConsole.started -= instance.OnToggleConsole;
+            @ToggleConsole.performed -= instance.OnToggleConsole;
+            @ToggleConsole.canceled -= instance.OnToggleConsole;
         }
 
-        public void RemoveCallbacks(IVehicleActions instance)
+        public void RemoveCallbacks(IPlayerActions instance)
         {
-            if (m_Wrapper.m_VehicleActionsCallbackInterfaces.Remove(instance))
+            if (m_Wrapper.m_PlayerActionsCallbackInterfaces.Remove(instance))
                 UnregisterCallbacks(instance);
         }
 
-        public void SetCallbacks(IVehicleActions instance)
+        public void SetCallbacks(IPlayerActions instance)
         {
-            foreach (var item in m_Wrapper.m_VehicleActionsCallbackInterfaces)
+            foreach (var item in m_Wrapper.m_PlayerActionsCallbackInterfaces)
                 UnregisterCallbacks(item);
-            m_Wrapper.m_VehicleActionsCallbackInterfaces.Clear();
+            m_Wrapper.m_PlayerActionsCallbackInterfaces.Clear();
             AddCallbacks(instance);
         }
     }
-    public VehicleActions @Vehicle => new VehicleActions(this);
+    public PlayerActions @Player => new PlayerActions(this);
 
     // UI
     private readonly InputActionMap m_UI;
@@ -1187,10 +1289,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         }
     }
     public UIActions @UI => new UIActions(this);
-    public interface IVehicleActions
+    public interface IPlayerActions
     {
         void OnMovement(InputAction.CallbackContext context);
         void OnCamera(InputAction.CallbackContext context);
+        void OnStartGame(InputAction.CallbackContext context);
+        void OnToggleConsole(InputAction.CallbackContext context);
     }
     public interface IUIActions
     {

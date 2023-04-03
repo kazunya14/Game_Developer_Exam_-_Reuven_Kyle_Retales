@@ -1,15 +1,16 @@
 ﻿using System;
-using UnityEngine;
+using Unity.Netcode;
 
-public class GameEvents {
+public class GameEvents : NetworkBehaviour {
     public static Action OnGameStart;
-    public static Action<Transform, ulong> OnPlayerSpawn;
+    public static Action OnGameManagerReady;
     
     public static void InvokeOnGameStart() {
         OnGameStart?.Invoke();
     }
     
-    public static void InvokeOnPlayerSpawn(Transform transform, ulong clientId) {
-        OnPlayerSpawn?.Invoke(transform, clientId);
+    public static void InvokeOnGameManagerReady() {
+        OnGameManagerReady?.Invoke();
     }
+    
 }
