@@ -30,7 +30,7 @@ public class LCarBehaviour : NetworkBehaviour {
     private LCarController _lCarController;
 
     private float _steeringBodyRollValue;
-    private const float _wheelFullRotationAngle = 360f;
+    private const float WHEEL_FULL_ROTATION = 360f;
 
     private Vector3 CarBodyLocalEulerAngles {
         set => carBodyModel.transform.localEulerAngles = value;
@@ -61,7 +61,7 @@ public class LCarBehaviour : NetworkBehaviour {
     }
 
     private void RotateWheels() {
-        var wheelRotation = NormalizedMagnitude * _wheelFullRotationAngle * Time.deltaTime * 
+        var wheelRotation = NormalizedMagnitude * WHEEL_FULL_ROTATION * Time.deltaTime * 
                             wheelRotationSpeed * Vector3.back;
 
         foreach(var wheelModel in wheelModels)

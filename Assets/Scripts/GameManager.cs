@@ -1,6 +1,8 @@
-﻿using RK.Retales.Utility;
+﻿using System;
+using RK.Retales.Utility;
 using TMPro;
 using Unity.Netcode;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : NetworkBehaviour {
@@ -16,8 +18,10 @@ public class GameManager : NetworkBehaviour {
 
     [Header("Debug")]
     [SerializeField] private LogHandler logger;
-    
+
     private int SpawnPointsLength => spawnPoints.Length;
+    
+    // TODO: Add Game Win-Lose Conditions
 
     private void Awake() {
         Debug();
@@ -60,4 +64,45 @@ public class GameManager : NetworkBehaviour {
 
         if(SpawnPointsLength == 0) logger.Log("No checkpoints!", this);
     }
+
+    
+#if UNITY_EDITOR
+        private void DrawCheckpointGizmos(Transform checkpoint)
+        {
+            Gizmos.color = Color.blue;
+
+            var currentMatrix = Gizmos.matrix;
+            Gizmos.matrix = checkpoint.transform.localToWorldMatrix;
+            Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
+            Gizmos.matrix = currentMatrix;
+
+            Gizmos.DrawSphere(checkpoint.transform.position, 0.5f);
+        }
+
+        private void OnDrawGizmos()
+        {
+            if (checkpoints == null || checkpoints.Length == 0) return;
+
+            for (var i = 0; i < checkpoints.Length; i++)
+            {
+                if (checkpoints[i] == null) continue;
+
+                DrawCheckpointGizmos(checkpoints[i]);
+
+                // Draw a line towards the next point in the path
+                if ((i + 1) < checkpoints.Length && checkpoints[i + 1] != null)
+                {
+                    StaticGizmoDrawer.DrawGizmoArrow(checkpoints[i].transform.position,
+                        checkpoints[i + 1].transform.position - checkpoints[i].transform.position, Color.blue);
+                }
+
+                // Draw a line from the first to the last point if we're looping
+                if (i == (checkpoints.Length - 1))
+                {
+                    StaticGizmoDrawer.DrawGizmoArrow(checkpoints[i].transform.position,
+                        checkpoints[0].transform.position - checkpoints[i].transform.position, Color.blue);
+                }
+            }
+        }
+#endif
 }
