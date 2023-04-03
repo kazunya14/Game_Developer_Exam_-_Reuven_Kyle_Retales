@@ -128,8 +128,9 @@ public class LCarController : NetworkBehaviour {
 
 #endregion
 
-    // TODO: Implement WheelCollider Movement
 #region LOGIC
+    
+    // TODO: Implement WheelCollider Movement
 
     public void HandleMovement(InputAction.CallbackContext context) {
         var input = context.ReadValue<Vector2>();
@@ -242,6 +243,7 @@ public class LCarController : NetworkBehaviour {
         
         LogHandler.StaticLog($"{name}: Host has started the game", Color.green, this);
     }
-
-#endregion
+    
+    #endregion
+    
 }
